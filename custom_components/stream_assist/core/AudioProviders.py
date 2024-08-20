@@ -1,7 +1,11 @@
-import av
 from av.audio.resampler import AudioResampler
 from av.container.input import InputContainer
+from rtp import RTP
+import array
+import av
 import logging
+import socket
+import soxr
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +23,10 @@ class AudioProvider:
 
   def disable(self):
     self._enabled = False
+
+  @property
+  def enabled(self):
+    return self._enabled
 
   @property
   def closed(self):
@@ -83,3 +91,42 @@ class AVAudioProvider(AudioProvider):
     finally:
         self._container.close()
         self._container = None
+
+class RTPAudioProvider(AudioProvider):
+
+  def __init__(self, port):
+    super().__init__()
+    self._port = port
+    self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self._socket.bind(("0.0.0.0", self._port))
+
+  def audio_data(self):
+    resampler = soxr.ResampleStream(
+        44100,
+        16000,
+        1,
+        dtype='int16')
+    try:
+      while True:
+        data, _ = self._socket.recvfrom(1500)
+
+        if self._closed:
+          return
+        if not self._enabled:
+          continue
+
+        r = RTP().fromBytearray(bytearray(data))
+        # swap endianness
+        swapped = bytearray(len(r.payload))
+        swapped[0::2] = r.payload[1::2]
+        swapped[1::2] = r.payload[0::2]
+
+        res_chunk = resampler.resample_chunk(array.array('h', swapped), False)
+        yield bytes(res_chunk)
+
+    except Exception as e:
+        _LOGGER.debug(f"stream exception {type(e)}: {e}")
+        raise e
+    finally:
+        self._socket.close()
+        self._socket = None

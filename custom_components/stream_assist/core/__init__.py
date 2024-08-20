@@ -60,17 +60,20 @@ async def get_stream_source(hass: HomeAssistant, entity: str) -> str | None:
 async def stream_prep(hass: HomeAssistant, data: dict, stt_stream: Stream) -> None:
     stream_kwargs = data.get("stream", {})
 
+    if port := data.get("rtp_udp_port"):
+      _LOGGER.debug("opening udp stream")
+      stt_stream.open_rtp(port)
+      return
+
     if "file" not in stream_kwargs:
         if url := data.get("stream_source"):
             stream_kwargs["file"] = url
         elif entity := data.get("camera_entity_id"):
             stream_kwargs["file"] = await get_stream_source(hass, entity)
-        elif port := data.get("rtp_udp_port"):
-            stream_kwargs["rtp_port"] = port
         else:
             return
 
-    _LOGGER.debug("opening stream")
+    _LOGGER.debug("opening av stream")
     stt_stream.open_av(**stream_kwargs)
 
 async def stream_run(hass: HomeAssistant, stt_stream: Stream) -> None:

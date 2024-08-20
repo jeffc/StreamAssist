@@ -12,6 +12,6 @@
   "documentation": "https://github.com/AlexxIT/StreamAssist",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/AlexxIT/StreamAssist/issues",
-  "requirements": [],
+  "requirements": ["rtp==0.0.4", "soxr==0.4.0"],
   "version": "v2.1.0"
 }

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from .AudioProviders import AudioProvider, AVAudioProvider
+from .AudioProviders import RTPAudioProvider, AVAudioProvider
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,9 +19,12 @@ class Stream:
     def open_av(self, file: str, **kwargs):
         _LOGGER.debug(f"av stream open")
         self.provider = AVAudioProvider(file, **kwargs)
-        _LOGGER.debug(f"starting provider")
         self.provider.start()
-        _LOGGER.debug(f"ok")
+
+    def open_rtp(self, port: int):
+        _LOGGER.debug(f"rtp stream open")
+        self.provider = RTPAudioProvider(port)
+        self.provider.start()
 
     def run(self, end=True):
         _LOGGER.debug("stream start")
