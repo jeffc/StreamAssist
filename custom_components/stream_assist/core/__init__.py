@@ -57,7 +57,7 @@ async def get_stream_source(hass: HomeAssistant, entity: str) -> str | None:
         return None
 
 
-async def stream_run(hass: HomeAssistant, data: dict, stt_stream: Stream) -> None:
+async def stream_prep(hass: HomeAssistant, data: dict, stt_stream: Stream) -> None:
     stream_kwargs = data.get("stream", {})
 
     if "file" not in stream_kwargs:
@@ -65,11 +65,15 @@ async def stream_run(hass: HomeAssistant, data: dict, stt_stream: Stream) -> Non
             stream_kwargs["file"] = url
         elif entity := data.get("camera_entity_id"):
             stream_kwargs["file"] = await get_stream_source(hass, entity)
+        elif port := data.get("rtp_udp_port"):
+            stream_kwargs["rtp_port"] = port
         else:
             return
 
-    stt_stream.open(**stream_kwargs)
+    _LOGGER.debug("opening stream")
+    stt_stream.open_av(**stream_kwargs)
 
+async def stream_run(hass: HomeAssistant, stt_stream: Stream) -> None:
     await hass.async_add_executor_job(stt_stream.run)
 
 
@@ -205,9 +209,10 @@ def run_forever(
     stt_stream = Stream()
 
     async def run_stream():
+        await stream_prep(hass, data, stt_stream=stt_stream)
         while not stt_stream.closed:
             try:
-                await stream_run(hass, data, stt_stream=stt_stream)
+                await stream_run(hass, stt_stream=stt_stream)
             except Exception as e:
                 _LOGGER.debug(f"run_stream error {type(e)}: {e}")
             await asyncio.sleep(30)

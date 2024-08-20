@@ -31,6 +31,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     vol.Required("name"): str,
                     vol.Exclusive("stream_source", "url"): str,
                     vol.Exclusive("camera_entity_id", "url"): vol.In(cameras),
+                    vol.Exclusive("rtp_udp_port", "url"): vol.All(int, vol.Range(min=1, max=65535))
                 },
                 user_input,
             ),
@@ -76,6 +77,7 @@ class OptionsFlowHandler(OptionsFlow):
                 {
                     vol.Exclusive("stream_source", "url"): str,
                     vol.Exclusive("camera_entity_id", "url"): vol.In(cameras),
+                    vol.Exclusive("rtp_udp_port", "url"): vol.All(int, vol.Range(min=1, max=65535)),
                     vol.Optional("player_entity_id"): cv.multi_select(players),
                     vol.Optional("stt_start_media"): str,
                     vol.Optional("pipeline_id"): vol.In(pipelines),
